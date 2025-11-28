@@ -1,0 +1,5 @@
+*~
+.DS_Store
+aiida_fourstate.egg-info
+__pycache__
+*.pyc

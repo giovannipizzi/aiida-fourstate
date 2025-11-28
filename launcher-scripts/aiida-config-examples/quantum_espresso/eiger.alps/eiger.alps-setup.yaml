@@ -1,0 +1,13 @@
+append_text: ''
+default_memory_per_machine: null
+description: Eiger@Alps at CSCS (Switzerland)
+hostname: eiger.alps.cscs.ch
+label: eiger.alps
+mpiprocs_per_machine: 128
+mpirun_command: srun -n {tot_num_mpiprocs}
+prepend_text: ''
+scheduler: core.slurm
+shebang: '#!/bin/bash'
+transport: core.ssh
+use_double_quotes: false
+work_dir: /capstor/scratch/cscs/{username}/aiida/

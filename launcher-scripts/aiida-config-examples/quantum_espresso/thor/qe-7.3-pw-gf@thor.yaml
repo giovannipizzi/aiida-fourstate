@@ -1,0 +1,9 @@
+append_text: ''
+computer: thor
+default_calc_job_plugin: quantumespresso.pw
+description: QE 7.3 on Thor compiled with gfortran
+filepath_executable: /mnt/home/software/qe/7.3-gf/bin/pw.x
+label: qe-7.3-pw-gf
+prepend_text: source /mnt/home/software/qe/7.3-gf/source.sh
+use_double_quotes: false
+with_mpi: null

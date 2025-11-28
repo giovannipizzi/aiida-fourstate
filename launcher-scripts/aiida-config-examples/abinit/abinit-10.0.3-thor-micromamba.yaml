@@ -1,0 +1,14 @@
+append_text: ''
+computer: thor-micromamba
+default_calc_job_plugin: abinit
+description: abinit obtained from micromamba
+filepath_executable: /mnt/home/pizzi_g/micromamba/bin/abinit
+label: abinit-10.0.3
+prepend_text: 'export PATH="$PATH:/mnt/home/pizzi_g/micromamba/bin"
+
+  export OMP_NUM_THREADS=1
+
+'
+use_double_quotes: 'False'
+
+

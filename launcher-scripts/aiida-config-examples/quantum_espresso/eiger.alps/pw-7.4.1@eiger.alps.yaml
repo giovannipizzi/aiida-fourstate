@@ -1,0 +1,18 @@
+append_text: ''
+computer: eiger.alps
+default_calc_job_plugin: quantumespresso.pw
+description: Quantum ESPRESSO pw.x from uenv=quantumespresso/v7.4.1:v2
+filepath_executable: /user-environment/env/default/bin/pw.x
+label: pw-7.4.1
+prepend_text: '#SBATCH --uenv=quantumespresso/v7.4.1:v2
+
+  #SBATCH -A mr32
+
+  #SBATCH --view=default
+
+  #SBATCH --hint=nomultithread
+
+
+  export OMP_NUM_THREADS=1'
+use_double_quotes: false
+with_mpi: true
