@@ -123,10 +123,10 @@ class MagneticExchangeWorkChain(WorkChain):
 
         # TODO: Move to class method, reuse later
         configurations = {
-            'UU': (1.0, 1.0),
-            'UD': (1.0, -1.0),
-            'DU': (-1.0, 1.0),
-            'DD': (-1.0, -1.0),
+            'upup': (1.0, 1.0),
+            'updown': (1.0, -1.0),
+            'downup': (-1.0, 1.0),
+            'downdown': (-1.0, -1.0),
         }
         
         for config_name, (mag1, mag2) in configurations.items():
