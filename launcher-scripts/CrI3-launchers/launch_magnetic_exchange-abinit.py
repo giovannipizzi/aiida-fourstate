@@ -11,7 +11,7 @@ from ase.geometry import find_mic
 from aiida_fourstate import MagneticExchangeWorkChain
 
 
-supercell_matrix = [2, 2, 1]
+supercell_matrix = [1, 1, 1]
 site1 = 0 # Cr
 neigh_idx = 1 # 1 means first-neigbhor
 ## CHECK OVERRIDES IN CUSTOM PROTOCOL!
@@ -19,7 +19,7 @@ neigh_idx = 1 # 1 means first-neigbhor
 
 ### THOR
 code_label = 'abinit-10.0.3@thor-micromamba'
-num_machines = 2
+num_machines = 1
 num_mpiprocs_per_machine = 48
 
 
