@@ -12,7 +12,7 @@ def compute_exchange_coupling(
 ):
     """Compute the exchange coupling constant J*S^2 from the four energies.
     
-    Uses the formula: J*S^2 = (E_AFM_avg - E_FM_avg) / 2
+    Uses the formula: J*S^2 = (E_FM_avg - E_AFM_avg) / 2
     where:
         E_FM_avg = (E_upup + E_downdown) / 2
         E_AFM_avg = (E_updown + E_downup) / 2
@@ -27,7 +27,7 @@ def compute_exchange_coupling(
     e_fm_avg = (e_upup + e_downdown) / 2.0
     e_afm_avg = (e_updown + e_downup) / 2.0
     
-    j_times_s2 = (e_afm_avg - e_fm_avg) / 2.0
+    j_times_s2 = (e_fm_avg - e_afm_avg) / 2.0
     
     return orm.Float(j_times_s2)
 

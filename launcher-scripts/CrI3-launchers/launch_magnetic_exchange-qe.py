@@ -3,7 +3,7 @@
 import numpy as np
 
 from aiida import orm
-from aiida.engine import submit
+from aiida.engine import submit, calcfunction
 from aiida_common_workflows.common import ElectronicType
 import ase.io
 from ase.geometry import find_mic
@@ -11,45 +11,48 @@ from ase.geometry import find_mic
 from aiida_fourstate import MagneticExchangeWorkChain
 
 
-#supercell_matrix = [3, 3, 1]
-supercell_matrix = [1, 1, 1]
-site1 = 0 # Cr
-neigh_idx = 1 # 1 means first-neigbhor
-
-num_machines = 1
+num_machines = 2
+### EIGER
+#code_label = 'pw-7.4.1@eiger.alps'
+#num_mpiprocs_per_machine = 128
+#num_pools = 4
 ### THOR
 code_label = 'qe-7.3-pw-gf@thor'
 num_mpiprocs_per_machine = 48
 num_pools = 4
-### EIGER
-#code_label = 'pw-7.4.1@eiger.alps'
-#num_mpiprocs_per_machine = 64
-#num_pools = 2
+
+
 
 protocol = 'custom'
-kpoints_distance = 0.15
+
+kpoints = [4, 4, 1]
+kpt_node = orm.KpointsData()
+kpt_node.set_kpoints_mesh(kpoints)
+# Will be stored later
+
+degauss = 7.34986e-05 # smearing: 1 meV (written in Ry)
 # LDA four-state v0 protocol for QE (with coarser k-points)
 custom_protocol = {
     'base': {
-        'kpoints_distance': kpoints_distance,
+        'kpoints': kpt_node,
         'meta_parameters': {
             'conv_thr_per_atom': 1e-10,
             'etot_conv_thr_per_atom': 5e-06},
         'pseudo_family': 'PseudoDojo/0.4/LDA/SR/standard/upf',
         'pw': {'parameters': {
             'CONTROL': {'forc_conv_thr': 5e-05},
-            'SYSTEM': {'degauss': 0.0045, 'smearing': 'fd'}}}},
+            'SYSTEM': {'degauss': degauss, 'smearing': 'fd'}}}}, 
     'base_final_scf': {
-        'kpoints_distance': kpoints_distance,
+        'kpoints': kpt_node,
         'meta_parameters': {'conv_thr_per_atom': 1e-10},
         'pseudo_family': 'PseudoDojo/0.4/LDA/SR/standard/upf',
         'pw': {'parameters': {
-            'SYSTEM': {'degauss': 0.0045, 'smearing': 'fd'}}}},
-    'description': 'Protocol for the 4-state verification (coarser k-mesh)'}
-
+            'SYSTEM': {'degauss': degauss, 'smearing': 'fd'}}}},
+    'description': 'Protocol for the 4-state verification with LDA functional and PseudoDojo pseudopotentials.'}
 
 
 # To decide if we want to track also provenance here with a calcfunction
+@calcfunction
 def create_supercell(structure, supercell_matrix):
     """Create a supercell from the input structure.
     
@@ -147,27 +150,34 @@ def find_neighbor(site1, neigh_idx, filter_element, atoms):
     return group['items'][0]
 
 
-def launch_magnetic_exchange_calculation():
-    """Launch a magnetic exchange coupling calculation."""
-    global supercell_matrix, site1, neigh_idx, code_label, num_mpiprocs_per_machine, num_pools
+def launch_magnetic_exchange_calculation(neigh_idx = 1):
+    """Launch a magnetic exchange coupling calculation.
+    
+    :param neigh_idx: Index of the neighbor to consider (1 means first neighbor)
+    """
+    global code_label, num_mpiprocs_per_machine, num_pools, kpt_node
 
-    ase_atoms = ase.io.read('2CrI3-1.cif')
+    supercell_matrix = [1, 1, 1] ## Setting this since it's already a supercell in input
+    site1 = 0 # Cr
+
+    ase_atoms = ase.io.read('cri3_3x3.cif')
     structure_unitcell = orm.StructureData(ase=ase_atoms)
-    # Create the supercell structure
-    structure_supercell = create_supercell(structure_unitcell, supercell_matrix)
+
+    if supercell_matrix == [1, 1, 1]:
+        structure_supercell = structure_unitcell
+    else:
+        # Create the supercell structure
+        structure_unitcell.store()
+        structure_supercell = create_supercell(structure_unitcell, supercell_matrix)
     
     print(f"Unit cell has {len(structure_unitcell.sites)} atoms")
     print(f"Supercell has {len(structure_supercell.sites)} atoms")
-    print(structure_supercell)
-    #structure_supercell.get_ase().write('output-supercell.xsf')
-
+    
     site2, dist = find_neighbor(site1 = site1, neigh_idx=neigh_idx, filter_element="Cr", atoms=structure_supercell.get_ase())
 
     magnetization_per_site = [3. if structure_supercell.get_kind(kind_name).symbol == "Cr" else 0. for kind_name in structure_supercell.get_site_kindnames()]
     magnetization_magnitude = 3.0 # For the two sites to flip
 
-    print(f"{magnetization_per_site=}")
-    
     # Generator inputs for the common workflows
     generator_inputs = {
         'engines': {
@@ -216,14 +226,21 @@ def launch_magnetic_exchange_calculation():
         }
     }
 
-    print(f"Submitting to {code_label} on {num_machines} node(s) with {num_mpiprocs_per_machine=} and {num_pools=}.")
+    print(f"Submitting J({neigh_idx}) for CrI3 to {code_label} on {num_machines} node(s) with {num_mpiprocs_per_machine=} and {num_pools=}.")
     print("Submit? [Ctrl+C to stop]")
     input()
     
+    # We first need to store the kpoints node (if not done already)
+    kpt_node.store()
+
     print("Submitting MagneticExchangeWorkChain...")
     node = submit(MagneticExchangeWorkChain, **inputs)
-    print(f"\nSubmitted workchain with PK: {node.pk}")    
+    print(f"\nSubmitted: J({neigh_idx}), PK = {node.pk}")
+    node.label = f"CrI3 J({neigh_idx}) calculation"
+    node.base.extras.set('magnetic_exchange_neigh_idx', neigh_idx)
 
 
 if __name__ == '__main__':
-    launch_magnetic_exchange_calculation()
+    for neigh_idx in [1, 2, 3]:
+        print(f"\n\nLaunching QE calculation of J({neigh_idx})*S^2\n")
+        launch_magnetic_exchange_calculation(neigh_idx=neigh_idx)

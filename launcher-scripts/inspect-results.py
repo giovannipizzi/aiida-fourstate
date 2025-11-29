@@ -74,10 +74,10 @@ def get_info(pk):
     # Sort calcjobs chronologically within each group
     for edge_label in calcjobs:
         calcjobs[edge_label].sort(key=lambda calcjob: calcjob.ctime)
-    print(calcjobs)        
+    #print(calcjobs)        
 
     upup = calcjobs['upup'][-1] # The last upup calculation
-    print(upup)
+    #print(upup)
 
     def get_calcs_and_output_files(calcjobs, NAMES, transport=None):
         output_files = {}
