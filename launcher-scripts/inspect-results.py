@@ -28,7 +28,7 @@ def get_output_lines(calc, transport):
         except FileNotFoundError:
             return None
 
-def grep(lines, pattern, num_last_matches=None, lines_before=0, skip_last_matches=0):
+def grep(lines, pattern, num_last_matches=None, lines_before=0, skip_last_matches=None):
     # Filter by pattern
     lines_idx = [idx for idx, l in enumerate(lines) if pattern in l]
     
@@ -99,6 +99,7 @@ def get_info(pk):
         # If calculation is sealed (so, finished), do not open SSH connections but get from retrieved files in the AiiDA repo
         calcs, output_files = get_calcs_and_output_files(calcjobs, NAMES) # Do not pass transport here
 
+    print(f"PK = {wc.pk} - UUID = {wc.uuid}")
     for name in NAMES:
         print(f"PK[{name}] ==> PK = {calcs[name].pk}; remote_folder ==> PK = {calcs[name].outputs.remote_folder.pk}")
 
@@ -117,9 +118,9 @@ def get_info(pk):
             if is_abinit:
                 acc_lines = grep(lines, 'magnetiz', num_last_matches=3, skip_last_matches=1)                
             else:
-                acc_lines = grep(lines, 'magnetiz', num_last_matches=2) 
+                acc_lines = grep(lines, 'magnetiz', num_last_matches=2)
             print("".join(acc_lines))
-
+            
             if is_abinit:
                 line_nums = [line_idx for line_idx, line in enumerate(lines) if 'ratsph' in line]
 

@@ -13,13 +13,13 @@ from aiida_fourstate import MagneticExchangeWorkChain
 
 num_machines = 2
 ### EIGER
-#code_label = 'pw-7.4.1@eiger.alps'
-#num_mpiprocs_per_machine = 128
-#num_pools = 4
-### THOR
-code_label = 'qe-7.3-pw-gf@thor'
-num_mpiprocs_per_machine = 48
+code_label = 'pw-7.4.1@eiger.alps'
+num_mpiprocs_per_machine = 128
 num_pools = 4
+### THOR
+#code_label = 'qe-7.3-pw-gf@thor'
+#num_mpiprocs_per_machine = 48
+#num_pools = 4
 
 
 
