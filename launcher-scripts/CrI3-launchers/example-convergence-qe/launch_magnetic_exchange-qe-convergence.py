@@ -1,5 +1,6 @@
 #!/usr/bin/env runaiida
 """Launch script for the MagneticExchangeWorkChain."""
+import copy
 import numpy as np
 
 from aiida import orm
@@ -11,28 +12,31 @@ from ase.geometry import find_mic
 from aiida_fourstate import MagneticExchangeWorkChain
 
 
-num_machines = 2
+GROUP_NAME = 'FourStateProtocol-convergence/CrI3/LDA/quantum_espresso/1x1x1cell'
+
+num_machines = 1
 ### EIGER
-code_label = 'pw-7.4.1@eiger.alps'
-num_mpiprocs_per_machine = 128
-num_pools = 4
-### THOR
-#code_label = 'qe-7.3-pw-gf@thor'
-#num_mpiprocs_per_machine = 48
+#code_label = 'pw-7.4.1@eiger.alps'
+#num_mpiprocs_per_machine = 128
 #num_pools = 4
+### THOR
+code_label = 'qe-7.3-pw-gf@thor'
+num_mpiprocs_per_machine = 48
+num_pools = 4
 
 
 
 protocol = 'custom'
 
-kpoints = [4, 4, 1]
+kpoints = [12, 12, 1] # For a unit cell, I do a denser k-point mesh
 kpt_node = orm.KpointsData()
 kpt_node.set_kpoints_mesh(kpoints)
 # Will be stored later
 
 degauss = 7.34986e-05 # smearing: 1 meV (written in Ry)
+
 # LDA four-state v0 protocol for QE (with coarser k-points)
-custom_protocol = {
+custom_protocol_BASE = {
     'base': {
         'kpoints': kpt_node,
         'meta_parameters': {
@@ -150,17 +154,21 @@ def find_neighbor(site1, neigh_idx, filter_element, atoms):
     return group['items'][0]
 
 
-def launch_magnetic_exchange_calculation(neigh_idx = 1, ask_for_confirmation=True):
+def launch_magnetic_exchange_calculation(neigh_idx = 1, cutoff_wfc=None, ask_for_confirmation=True):
     """Launch a magnetic exchange coupling calculation.
     
     :param neigh_idx: Index of the neighbor to consider (1 means first neighbor)
+    :param cutoff_wfc: Kinetic energy cutoff for wavefunctions (in Ry). If None, use default from protocol.
+    :param ask_for_confirmation: If True, ask for user confirmation before submitting.
     """
     global code_label, num_mpiprocs_per_machine, num_pools, kpt_node, custom_protocol
 
-    supercell_matrix = [1, 1, 1] ## Setting this since it's already a supercell in input
+    CUTOFF_DUAL = 4. # Hardcoded for now since I know I'm using norm-conserving pseudopotentials
+
+    supercell_matrix = [1, 1, 1] ## For convergence I do the 1x1x1 cell
     site1 = 0 # Cr
 
-    ase_atoms = ase.io.read('cri3_3x3.cif')
+    ase_atoms = ase.io.read('cri3_primitive.cif')
     structure_unitcell = orm.StructureData(ase=ase_atoms)
 
     if supercell_matrix == [1, 1, 1]:
@@ -177,6 +185,28 @@ def launch_magnetic_exchange_calculation(neigh_idx = 1, ask_for_confirmation=Tru
 
     magnetization_per_site = [3. if structure_supercell.get_kind(kind_name).symbol == "Cr" else 0. for kind_name in structure_supercell.get_site_kindnames()]
     magnetization_magnitude = 3.0 # For the two sites to flip
+
+    ######## ADAPT PROTOCOL WITH CUTOFFS, IF ASKED ########
+    custom_protocol = copy.deepcopy(custom_protocol_BASE)
+    # Put back kpoints node as the deepcopy will create problems when storing it
+    custom_protocol['base']['kpoints'] = kpt_node
+    custom_protocol['base_final_scf']['kpoints'] = kpt_node
+    
+    if cutoff_wfc is not None:
+        # Modify the custom protocol to set the desired cutoff
+        print(f"Using custom wavefunction cutoff: {cutoff_wfc} Ry")
+
+        for subwf in ['base', 'base_final_scf']:
+            if 'pw' not in custom_protocol[subwf]:
+                custom_protocol[subwf]['pw'] = {}
+            if 'parameters' not in custom_protocol[subwf]['pw']:
+                custom_protocol[subwf]['pw']['parameters'] = {}
+            if 'SYSTEM' not in custom_protocol[subwf]['pw']['parameters']:
+                custom_protocol[subwf]['pw']['parameters']['SYSTEM'] = {}
+            
+            custom_protocol[subwf]['pw']['parameters']['SYSTEM']['ecutwfc'] = cutoff_wfc
+            custom_protocol[subwf]['pw']['parameters']['SYSTEM']['ecutrho'] = int(cutoff_wfc * CUTOFF_DUAL)
+    #######################################################
 
     # Generator inputs for the common workflows
     generator_inputs = {
@@ -239,10 +269,19 @@ def launch_magnetic_exchange_calculation(neigh_idx = 1, ask_for_confirmation=Tru
     print(f"\nSubmitted: J({neigh_idx}), PK = {node.pk}")
     node.label = f"CrI3 J({neigh_idx}) calculation"
     node.base.extras.set('magnetic_exchange_neigh_idx', neigh_idx)
+    node.base.extras.set('cutoff_wfc', cutoff_wfc)
+
+    group, created = orm.Group.collection.get_or_create(GROUP_NAME)
+    group.add_nodes([node])
 
     return node
+    
 
 if __name__ == '__main__':
-    for neigh_idx in [1, 2, 3]:
-        print(f"\n\nLaunching QE calculation of J({neigh_idx})*S^2\n")
-        launch_magnetic_exchange_calculation(neigh_idx=neigh_idx)
+    for neigh_idx in [1]:
+        # Cutoff from PseudoDojo: 94 Ry for Cr
+        for cutoff_wfc in range(50, 111, 10):  # from 50 to 110 Ry, step 10 Ry
+            print(f"\n\nLaunching QE calculation of J({neigh_idx})*S^2 (ecutwfc={cutoff_wfc})\n")
+            launch_magnetic_exchange_calculation(neigh_idx=neigh_idx, cutoff_wfc=cutoff_wfc, ask_for_confirmation=False)
+    print()
+    print(f"\nAll calculations submitted and added to group {GROUP_NAME}.")
