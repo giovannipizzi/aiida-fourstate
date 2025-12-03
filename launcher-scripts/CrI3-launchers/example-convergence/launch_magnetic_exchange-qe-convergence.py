@@ -168,7 +168,7 @@ def launch_magnetic_exchange_calculation(neigh_idx = 1, cutoff_wfc=None, ask_for
     supercell_matrix = [1, 1, 1] ## For convergence I do the 1x1x1 cell
     site1 = 0 # Cr
 
-    ase_atoms = ase.io.read('cri3_primitive.cif')
+    ase_atoms = ase.io.read('../cri3_primitive.cif')
     structure_unitcell = orm.StructureData(ase=ase_atoms)
 
     if supercell_matrix == [1, 1, 1]:
