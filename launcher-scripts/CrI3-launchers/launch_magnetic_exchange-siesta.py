@@ -11,10 +11,10 @@ from ase.geometry import find_mic
 from aiida_fourstate import MagneticExchangeWorkChain
 
 
-num_machines = 2
+num_machines = 1
 ### Snellius
 code_label = 'siesta-5.4.1-foss-2023a-xml-v1@Snellius'
-num_mpiprocs_per_machine = 11*2*5  # nk * nspin * ngroups
+num_mpiprocs_per_machine = 11*2*5  # nk * nspin * ngroups (ELSI needs very specific number of tasks)
 num_cores_per_mpiproc = 1
 queue_name = 'genoa'
 max_memory_kb = 352321536  # max mem of 192-core genoa node is smallest allocation
@@ -38,21 +38,21 @@ custom_protocol = {
         'scf-mixer-history': 10,
         'scf-dm-tolerance': '1.0d-5',
         'scf-h-tolerance': '1.0d-4 eV',
-        'solution-method': 'ELSI',
-        'elsi-solver': 'ELPA',
-        'elsi-elpa-flavor': 2,
-        'elsi-broadening-method': 'fermi',
-       #'solution-method': 'diagon',
-       #'diag-algorithm': 'Divide-and-Conquer',
-       #'diag-paralleloverk': 'true',
-        'mesh-cutoff': '900 Ry',
+        #'solution-method': 'ELSI',
+        #'elsi-solver': 'ELPA',
+        #'elsi-elpa-flavor': 2,
+        #'elsi-broadening-method': 'fermi',
+        'solution-method': 'diagon',
+        'diag-algorithm': 'Divide-and-Conquer',
+        'diag-paralleloverk': 'true',
+        'mesh-cutoff': '1500 Ry',
         'electronictemperature': '1 meV',
         'write-mulliken-pop': 1,
         'write-hirshfeld-pop': 'true',
     },
     'basis': {
         'pao-basistype': 'split',
-        'pao-basissize': 'DZP',
+        'pao-basissize': 'TZP',
         'pao-energyshift': '0.01 Ry',
         'pao-splitnorm': '0.15',
         'pao-splittailnorm': 'true',
