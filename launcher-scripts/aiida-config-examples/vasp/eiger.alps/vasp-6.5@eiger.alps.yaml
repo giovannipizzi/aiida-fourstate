@@ -1,0 +1,18 @@
+append_text: ''
+computer: eiger.alps
+default_calc_job_plugin: vasp.vasp
+description: VASP v6.5.0 (STD) on Eiger at CSCS
+filepath_executable: /user-environment/env/vasp/bin/vasp_std
+label: vasp-6.5.0-std
+prepend_text: '#SBATCH --uenv=vasp/v6.5.0:v1
+
+  #SBATCH -A mr32
+
+  #SBATCH --view=vasp
+
+  #SBATCH --hint=nomultithread
+
+
+  export OMP_NUM_THREADS=1'
+use_double_quotes: false
+with_mpi: true
