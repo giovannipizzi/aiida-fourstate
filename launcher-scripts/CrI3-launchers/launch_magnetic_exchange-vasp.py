@@ -13,14 +13,12 @@ from aiida_fourstate import MagneticExchangeWorkChain
 
 ### EIGER.ALPS
 code_label = 'vasp-6.5.0-std@eiger.alps'
-num_machines = 1
+num_machines = 2
 num_mpiprocs_per_machine = 128
 
 
 protocol = 'custom'
-#kpoints = [4, 4, 1]
-print("ADAPT K-POINT GRID WHEN GOING TO 3x3x1 SUPERCELL!")
-kpoints = [12, 12, 1] # For a single unit cell I use a denser grid
+kpoints = [4, 4, 1]
 
 
 # LDA four-state v0 protocol for VASP
@@ -34,18 +32,17 @@ custom_protocol = {'name': 'fourstate-LDA-v1',
                     'kpoints': kpoints,
                     'relax': {'algo': 'rd', 'threshold_forces': 0.001, 'steps': 200},
                     'parameters': {'prec': 'Accurate',
-                                   'encut': 1000,
+                                   'encut': 700,
                                    'ediff': 1e-07,
                                    'ismear': -1,
                                    'sigma': 0.001, # 1 meV
                                    'algo': 'Normal',
                                    'nelmin': 6,
                                    'nelm': 300,
-                                   'lmaxmix': 6,
-                                   'lasph': True,
+                                   'gga': 'PW92',
                                    'gga_compat': False,
-                                   'ncore': 2,
-                                   'kpar': 4}}
+                                   'ncore': 8,
+                                   'kpar': 2}}
 
 # To decide if we want to track also provenance here with a calcfunction
 @calcfunction
@@ -156,9 +153,7 @@ def launch_magnetic_exchange_calculation(neigh_idx = 1):
     supercell_matrix = [1, 1, 1] ## Setting this since it's already a supercell in input
     site1 = 0 # Cr
 
-    print("FOR NOW, UNITCELL! REQUIRES SETTING CORRECTLY PARALLELIZATION PARAMS!")
-    #ase_atoms = ase.io.read('cri3_3x3.cif')
-    ase_atoms = ase.io.read('cri3_primitive.cif')
+    ase_atoms = ase.io.read('cri3_3x3.cif')
     structure_unitcell = orm.StructureData(ase=ase_atoms)
 
     if supercell_matrix == [1, 1, 1]:
@@ -229,6 +224,6 @@ def launch_magnetic_exchange_calculation(neigh_idx = 1):
 
 
 if __name__ == '__main__':
-    for neigh_idx in [1]:
+    for neigh_idx in [1, 2, 3]:
         print(f"\n\nLaunching VASP calculation of J({neigh_idx})*S^2\n")
         launch_magnetic_exchange_calculation(neigh_idx=neigh_idx)
