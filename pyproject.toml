@@ -12,3 +12,4 @@ dependencies = ["aiida-core>=2.7", "numpy", "ase", "aiida_common_workflows"]
 
 [project.entry-points.'aiida.workflows']
 "fourstate.fourstate" = "aiida_fourstate:MagneticExchangeWorkChain"
+"fourstate.mae" = "aiida_fourstate:MagneticAnisotropyEnergyWorkChain"
